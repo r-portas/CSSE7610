@@ -9,11 +9,11 @@
 
 public class CircularBuffer {
 
-    private int bufferSize;
-    private char[] buffer;
+    private volatile int bufferSize;
+    private volatile char[] buffer;
 
-    private int in;
-    private int out;
+    private volatile int in;
+    private volatile int out;
 
     /**
      * Creates the circular buffer

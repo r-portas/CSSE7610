@@ -5,6 +5,7 @@ OUTPUT_DIR = bin
 all: .class
 
 .class:
+	mkdir -p bin
 	$(JC) -d $(OUTPUT_DIR) $(JAVA_CLASSES)
 
 clean:
