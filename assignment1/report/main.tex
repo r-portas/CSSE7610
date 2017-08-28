@@ -1,0 +1,35 @@
+\title{CSSE7610 Assignment 1}
+\author{Roy Portas - 43560846}
+\date{\today}
+
+\documentclass[12pt,a4paper]{article}
+
+\begin{document}
+
+\section{Proof}
+
+\subsection*{\textbf{Lemma 1}: $q2 \Longrightarrow in \neq out$}
+\begin{itemize}
+    \item Initially $q2$ is false, lemma is true
+    \item Only statement that progresses to $q2$ is $q1$ which requires $in \neq out$
+    \item $in \neq out$ cannot become false between $q1$ and $q2$
+    \begin{itemize}
+        \item Only other statement which can change $in$ or $out$ is $p4$
+        \item Since \textbf{lemma 2}, $p$ cannot make $in \neq out$
+    \end{itemize}
+\end{itemize}
+
+\subsection*{\textbf{Lemma 2}: $p3..4 \Longrightarrow out \neq (in+1)\ mod\ N$}
+\begin{itemize}
+    \item Initially holds, as $p3..4$ is false
+    \item Only statement that progresses to $p3..4$ is $p2$ which requires $out \neq (in+1)$
+    \item $out != (in + 1) mod N$ cannot become false between $p2..p4$
+    \item Thus cannot increment $in$ such that $in = out$
+    \begin{itemize}
+        \item Only statement which can change $in$ or $out$ is $q3$ ($out = out + 1$)
+        \item Thus can increment to $out+1$, so $(out+1) \neq (in+1)\ mod\ N$
+    \end{itemize}
+\end{itemize}
+
+
+\end{document}

@@ -25,7 +25,7 @@ inline getItem() {
     counter = (counter+1) % 255;
 }
 
-// ltl mutex {[] (critical <= 1)}
+ltl mutex {[] (critical <= 1)}
 #define mutex [] (critical <= 1)
 
 active proctype p () {
@@ -38,6 +38,7 @@ active proctype p () {
         out != (in + 1) % N;
             // Increment the critical counter when entering the critical section
             critical++;
+            assert(critical<=1);
             buffer[in] = counter;
             // Decrement the critical counter when exiting the critical section
             critical--;
@@ -52,6 +53,7 @@ active proctype q () {
     :: true -> 
         in != out;
             critical++;
+            assert(critical<=1);
             d = buffer[out];
             critical--;
 
