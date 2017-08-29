@@ -3,10 +3,11 @@
 \date{\today}
 
 \documentclass[12pt,a4paper]{article}
+\usepackage{amssymb}
 
 \begin{document}
 
-\section{Proof}
+\section{Proof of Mutual Exclusion}
 
 \subsection*{\textbf{Lemma 1}: $q2 \Longrightarrow in \neq out$}
 \begin{itemize}
@@ -31,5 +32,34 @@
     \end{itemize}
 \end{itemize}
 
+\subsection*{\textbf{Theorem 1}: $\sim(p3 \wedge q2)$}
+\begin{itemize}
+    \item Assume $p3 \hat q2$
+    \item $q2 \Longrightarrow in != out \longrightarrow \sim q2 \vee in \neq out$
+    \item $p3 \Longrightarrow out \neq (in + 1)\ mod\ N$
+    \item $(\neq q2 \vee in \neq out) \wedge (\sim p3 \vee out \neq (in + 1)\ mod\ N$
+    \item If we assume $p3 \wedge q2$, then $\sim q2 = false$ and $\sim p3 = false$
+    \item $(in \neq out) \wedge (out \neq (in + 1)\ mod\ N)$
+    \item $in \neq (in + 1)\ mod\ N$
+    \item Therefore theorem holds
+\end{itemize}
+
+\section{Proof of Freedom from Starvation}
+
+\subsection*{\textbf{Theorem 2}: $\square(p1 \Longrightarrow \lozenge p3) \wedge \square(q1 \Longrightarrow \lozenge q2)$}
+
+\subsubsection*{$\square (p1 \Longrightarrow \lozenge p3)$}
+\begin{itemize}
+    \item From $p1$, progresses to $p2$
+    \item To progress to $p3$, $out \neq (in+1)\ mod\ N$ must be true
+    \item Intially $in = out = 0$, so $0 \neq (0+1)\ mod\ N$ is true, thus progresses to $p3$
+\end{itemize}
+
+\subsubsection*{$\square (q1 \Longrightarrow \lozenge q2)$}
+\begin{itemize}
+    \item To progress to $q2$, $in \neq out$ must be true
+    \item When an item is added, $in \neq out$ will be true and will progress to $q2$
+
+\end{itemize}
 
 \end{document}

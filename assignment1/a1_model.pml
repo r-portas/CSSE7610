@@ -1,9 +1,9 @@
 /**
  * circular.pml
  * @author Roy Portas - 43560846
- */
+ */ 
 
-
+/* Buffer size */
 #define N 10
 
 byte buffer[N];
@@ -11,39 +11,37 @@ byte buffer[N];
 byte in = 0;
 byte out = 0;
 
-// Keeps track of the current number of critical sections entered
-byte critical = 0;
-
-// Used to test functionality
+/* Used to test functionality */
 byte counter = 0;
 
+/* Simulates using an item */
 inline useItem(d) {
     printf("Got %d\n", d);
 }
 
+/* Simulates getting an item */
 inline getItem() {
     counter = (counter+1) % 255;
 }
 
-ltl mutex {[] (critical <= 1)}
-#define mutex [] (critical <= 1)
+bool PinCS = false;
+bool QinCS = false;
+ltl nostarve {[]<> PinCS && []<> QinCS}
 
 active proctype p () {
     byte d;
     do
     :: true -> 
-        // Simulates get item
         getItem();
 
+        /* Check for starvation */
+        PinCS = true;
+        PinCS = false;
         out != (in + 1) % N;
-            // Increment the critical counter when entering the critical section
-            critical++;
-            assert(critical<=1);
-            buffer[in] = counter;
-            // Decrement the critical counter when exiting the critical section
-            critical--;
 
-            in = (in + 1) % N
+        buffer[in] = counter;
+
+        in = (in + 1) % N
     od;
 }
 
@@ -51,14 +49,20 @@ active proctype q () {
     byte d;
     do
     :: true -> 
-        in != out;
-            critical++;
-            assert(critical<=1);
-            d = buffer[out];
-            critical--;
 
-            out = (out + 1) % N
-            useItem(d);
+        in != out;
+
+        /* Check for starvation */
+        PinCS = true;
+        PinCS = false;
+
+        /* We check mutual exclusion by ensuring in != out,
+        thus cannot be reading the same thing we are writing */
+        assert(in != out);
+        d = buffer[out];
+
+        out = (out + 1) % N
+        useItem(d);
     od;
 }
 
