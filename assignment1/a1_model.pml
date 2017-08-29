@@ -24,6 +24,9 @@ inline getItem() {
     counter = (counter+1) % 255;
 }
 
+/* Count the number of processes in critical sections */
+byte critical = 0;
+
 bool PinCS = false;
 bool QinCS = false;
 ltl nostarve {[]<> PinCS && []<> QinCS}
@@ -34,12 +37,22 @@ active proctype p () {
     :: true -> 
         getItem();
 
+        out != (in + 1) % N;
+
         /* Check for starvation */
         PinCS = true;
         PinCS = false;
-        out != (in + 1) % N;
 
+        /* Lemma 2 of proof */
+        assert(out != (in + 1) % N);
+
+        critical++;
+        /* Proof */
+        if
+        :: (in != out) -> assert(critical <= 1);
+        fi
         buffer[in] = counter;
+        critical--;
 
         in = (in + 1) % N
     od;
@@ -56,12 +69,17 @@ active proctype q () {
         PinCS = true;
         PinCS = false;
 
-        /* We check mutual exclusion by ensuring in != out,
-        thus cannot be reading the same thing we are writing */
+        /* Lemma 1 of proof */
         assert(in != out);
-        d = buffer[out];
 
+        critical++;
+        /* Proof */
+        if
+        :: (in != out) -> assert(critical <= 1);
+        fi
+        d = buffer[out];
         out = (out + 1) % N
+        critical--;
         useItem(d);
     od;
 }

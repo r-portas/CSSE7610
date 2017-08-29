@@ -7,8 +7,6 @@
 
 \begin{document}
 
-\section{Proof of Mutual Exclusion}
-
 \subsection*{\textbf{Lemma 1}: $q2 \Longrightarrow in \neq out$}
 \begin{itemize}
     \item Initially $q2$ is false, lemma is true
@@ -16,7 +14,7 @@
     \item $in \neq out$ cannot become false between $q1$ and $q2$
     \begin{itemize}
         \item Only other statement which can change $in$ or $out$ is $p4$
-        \item Since \textbf{lemma 2}, $p$ cannot make $in \neq out$
+        \item Since \textbf{lemma 2}, $out \neq (in + 1)\ mod\ N$, so $p4$ cannot increment such that $out = in$ 
     \end{itemize}
 \end{itemize}
 
@@ -24,23 +22,28 @@
 \begin{itemize}
     \item Initially holds, as $p3..4$ is false
     \item Only statement that progresses to $p3..4$ is $p2$ which requires $out \neq (in+1)$
-    \item $out != (in + 1) mod N$ cannot become false between $p2..p4$
-    \item Thus cannot increment $in$ such that $in = out$
     \begin{itemize}
         \item Only statement which can change $in$ or $out$ is $q3$ ($out = out + 1$)
-        \item Thus can increment to $out+1$, so $(out+1) \neq (in+1)\ mod\ N$
+        \item Since \textbf{lemma 1}, $out$ cannot be incremented such that $out = in+1$,
+            as this implies that $out = in$
     \end{itemize}
+    \item Thus can increment to $out+1$, so $(out+1) \neq (in+1)\ mod\ N$
+    \item $out \neq (in + 1)\ mod\ N$ cannot become false between $p2..p4$
+    \item Thus cannot increment $in$ such that $in = out$
 \end{itemize}
+
+\section{Proof of Mutual Exclusion}
 
 \subsection*{\textbf{Theorem 1}: $\sim(p3 \wedge q2)$}
 \begin{itemize}
-    \item Assume $p3 \hat q2$
-    \item $q2 \Longrightarrow in != out \longrightarrow \sim q2 \vee in \neq out$
-    \item $p3 \Longrightarrow out \neq (in + 1)\ mod\ N$
-    \item $(\neq q2 \vee in \neq out) \wedge (\sim p3 \vee out \neq (in + 1)\ mod\ N$
+    \item Assume $p3 \wedge q2$
+    \item Using \textbf{lemma 1}: $q2 \Longrightarrow in \neq out \longrightarrow \sim q2 \vee in \neq out$ (Negation of implication)
+    \item Using \textbf{lemma 2}: $p3 \Longrightarrow out \neq (in + 1)\ mod\ N \longrightarrow \sim p3 \vee out \neq (in + 1)\ mod\ N$ (Negation of implication)
+    \item $(\sim q2 \vee in \neq out) \wedge (\sim p3 \vee out \neq (in + 1)\ mod\ N$
     \item If we assume $p3 \wedge q2$, then $\sim q2 = false$ and $\sim p3 = false$
     \item $(in \neq out) \wedge (out \neq (in + 1)\ mod\ N)$
     \item $in \neq (in + 1)\ mod\ N$
+    \item Proof by contradiction
     \item Therefore theorem holds
 \end{itemize}
 
@@ -51,15 +54,26 @@
 \subsubsection*{$\square (p1 \Longrightarrow \lozenge p3)$}
 \begin{itemize}
     \item From $p1$, progresses to $p2$
-    \item To progress to $p3$, $out \neq (in+1)\ mod\ N$ must be true
-    \item Intially $in = out = 0$, so $0 \neq (0+1)\ mod\ N$ is true, thus progresses to $p3$
+    \item To progress to $p3$, $out \neq (in+1)\ mod\ N$ must be true, using \textbf{Lemma 2}
+    \begin{itemize}
+        \item Since $p4$ is the only line that can change $in$, therefore the only variable that can update and break the await condition is $out$
+        \item The only line which can update $out$ is $q3$
+    \end{itemize}
+    \item Initially $in = out = 0$, so $0 \neq (0+1)\ mod\ N$ is true, thus progresses to $p3$
+    \item For every subsequent run, the $q$ process must run at least once (such that there is something in the buffer to read)
 \end{itemize}
 
 \subsubsection*{$\square (q1 \Longrightarrow \lozenge q2)$}
 \begin{itemize}
-    \item To progress to $q2$, $in \neq out$ must be true
+    \item To progress to $q2$, $in \neq out$ must be true, using \textbf{Lemma 1}
+    \item Initially $in = out = 0$, thus the process will block until $p$ has been run at least once
+    \item Once $p$ has been run at least once, it will increment $in$, making $in \neq out$ true and allowing $q1$ to progress
+        \begin{itemize}
+            \item Since $q3$ is the only line which can change $out$, therefore the only variable that can update and break the await condition is $in$
+            \item The only line that changes $in$ is $p4$, thus $p$ must enter it's critical section before $q$ can run
+        \end{itemize}
     \item When an item is added, $in \neq out$ will be true and will progress to $q2$
-
+    \item If $in = out$, the process will block until an item is added, which will increment $in$
 \end{itemize}
 
 \end{document}
