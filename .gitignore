@@ -1,6 +1,8 @@
 # Compiled class file
 *.class
 
+assignment1/dist
+
 # Log file
 *.log
 
@@ -27,3 +29,5 @@ hs_err_pid*
 # Spin
 *.tmp
 *.pml.trail
+
+.DS_Store

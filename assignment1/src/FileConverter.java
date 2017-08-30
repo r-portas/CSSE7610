@@ -160,7 +160,9 @@ public class FileConverter {
 
     public static void main(String[] args) {
 
+        // The source file
         String sourceFile = "resources/source.txt";
+        // The output file
         String targetFile = "resources/my-target.txt";
 
         CircularBuffer c1 = new CircularBuffer(20);

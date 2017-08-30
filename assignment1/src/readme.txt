@@ -1,5 +1,12 @@
 # Readme
 
+## How to Run
+
+There is an included makefile, just run `make run` and it will compile the
+code and run the application. The 'resources' folder contains the source
+and target files, once the program is ran a 'my-target.txt' file will
+be created, which can be diffed against the 'target.txt' file.
+
 ## Approach
 
 The circular buffer was implemented as per the first question, with while loops
