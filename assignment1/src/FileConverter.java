@@ -9,6 +9,9 @@
 import java.lang.Thread;
 import java.io.IOException;
 
+/**
+ * Reads from the file and outputs to the buffer
+ */
 class ReaderThread extends Thread {
 
     private CircularBuffer buffer;
@@ -31,6 +34,9 @@ class ReaderThread extends Thread {
         }
     }
 
+    /**
+     * Runs the thread
+     */
     public void run() {
         while (true) {
             int c = reader.read();
@@ -54,6 +60,10 @@ class ReaderThread extends Thread {
     }
 }
 
+/**
+ * Reads from one buffer, removes tabs and double spaces
+ * then writes to the other buffer
+ */
 class ParserThread extends Thread {
 
     private CircularBuffer inBuffer;
@@ -92,7 +102,6 @@ class ParserThread extends Thread {
             }
 
             // Put into outbound buffer
-            System.out.print(character);
             outBuffer.addItem(character);
 
             // Exit after sending 0
@@ -103,6 +112,9 @@ class ParserThread extends Thread {
     }
 }
 
+/**
+ * Reads from the buffer and writes to the file
+ */
 class WriterThread extends Thread {
 
     private CircularBuffer buffer;
@@ -141,6 +153,9 @@ class WriterThread extends Thread {
     }
 }
 
+/**
+ * Entrypoint for the program
+ */
 public class FileConverter {
 
     public static void main(String[] args) {
@@ -159,17 +174,5 @@ public class FileConverter {
         parser.start();
         writer.start();
 
-        // try {
-        //     reader = new A1Reader("resources/source.txt");
-        // } catch (Exception e) {
-        //     e.printStackTrace();
-        // }
-
-        // CircularBuffer b = new CircularBuffer(20);
-        // b.addItem('a');
-        // b.addItem('b');
-
-        // System.out.println(b.getItem());
-        // System.out.println(b.getItem());
     }
 }

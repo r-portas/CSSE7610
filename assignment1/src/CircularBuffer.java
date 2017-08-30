@@ -6,7 +6,6 @@
  *
  * @author Roy Portas
  */
-
 public class CircularBuffer {
 
     private volatile int bufferSize;
@@ -35,7 +34,6 @@ public class CircularBuffer {
     public void addItem(char item) {
         while (out == (in + 1) % bufferSize) {
             // Wait here
-            // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/Condition.html
         }
 
         buffer[in] = item;
@@ -50,7 +48,6 @@ public class CircularBuffer {
     public char getItem() {
         while (in == out) {
             // Wait here
-            // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/Condition.html
         }
 
         char c = buffer[out];

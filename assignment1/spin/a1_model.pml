@@ -41,7 +41,6 @@ active proctype p () {
 
         /* Check for starvation */
         PinCS = true;
-        PinCS = false;
 
         /* Lemma 2 of proof */
         assert(out != (in + 1) % N);
@@ -49,12 +48,15 @@ active proctype p () {
         critical++;
         /* Proof */
         if
-        :: (in != out) -> assert(critical <= 1);
-        fi
+        :: (in != out) -> assert(critical <= 1)
+        :: else
+        fi;
         buffer[in] = counter;
+        in = (in + 1) % N
         critical--;
 
-        in = (in + 1) % N
+        PinCS = false;
+
     od;
 }
 
@@ -67,19 +69,20 @@ active proctype q () {
 
         /* Check for starvation */
         PinCS = true;
-        PinCS = false;
 
         /* Lemma 1 of proof */
         assert(in != out);
 
         critical++;
-        /* Proof */
+        /* Proof 
         if
-        :: (in != out) -> assert(critical <= 1);
-        fi
+        :: (in != out) -> assert(critical <= 1)
+        fi;*/
         d = buffer[out];
         out = (out + 1) % N
         critical--;
+
+        PinCS = false;
         useItem(d);
     od;
 }
