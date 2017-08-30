@@ -1,6 +1,10 @@
 /**
  * circular.pml
  * @author Roy Portas - 43560846
+ *
+ * Properties proved:
+ * - Mutual Exclusion (using assertions)
+ * - Freedom from starvation (using ltl 'nostarve')
  */ 
 
 /* Buffer size */
@@ -45,15 +49,8 @@ active proctype p () {
         /* Lemma 2 of proof */
         assert(out != (in + 1) % N);
 
-        critical++;
-        /* Proof */
-        if
-        :: (in != out) -> assert(critical <= 1)
-        :: else
-        fi;
         buffer[in] = counter;
         in = (in + 1) % N
-        critical--;
 
         PinCS = false;
 
@@ -73,14 +70,8 @@ active proctype q () {
         /* Lemma 1 of proof */
         assert(in != out);
 
-        critical++;
-        /* Proof 
-        if
-        :: (in != out) -> assert(critical <= 1)
-        fi;*/
         d = buffer[out];
         out = (out + 1) % N
-        critical--;
 
         PinCS = false;
         useItem(d);
