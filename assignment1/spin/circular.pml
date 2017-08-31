@@ -43,14 +43,21 @@ active proctype p () {
 
         out != (in + 1) % N;
 
+        /* Mutual Exclusion */
+        assert(!((in + 1) % N == out && critical != 0));
+
         /* Check for starvation */
         PinCS = true;
 
         /* Lemma 2 of proof */
         assert(out != (in + 1) % N);
 
+        critical++;
         buffer[in] = counter;
         in = (in + 1) % N
+        critical--;
+
+        /* Proof */
 
         PinCS = false;
 
@@ -64,16 +71,25 @@ active proctype q () {
 
         in != out;
 
+        /* Mutual Exclusion */
+        assert(!(in == out && critical != 0));
+
         /* Check for starvation */
         PinCS = true;
 
         /* Lemma 1 of proof */
         assert(in != out);
 
+        /* Proof */
+        /* assert(in != out && critical <= 1); */
+
+        critical++;
         d = buffer[out];
         out = (out + 1) % N
+        critical--;
 
         PinCS = false;
+
         useItem(d);
     od;
 }
