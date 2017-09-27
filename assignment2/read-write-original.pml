@@ -9,8 +9,12 @@ byte x1 = 0;
 byte x2 = 0;
 byte item = 0;
 
-inline use(d1, d2) {
-    printf("Read (%d, %d)\n", d1, d2);
+inline readData(d1, d2) {
+    printf("Reader #%d (%d, %d)\n", _pid, d1, d2);
+}
+
+inline writeData(d1, d2) {
+    /* printf("Writer #%d (%d, %d)\n", _pid, d1, d2); */
 }
 
 inline get() {
@@ -30,20 +34,23 @@ active proctype reader () {
             do
             :: true -> 
                 c0 = c;
+                printf("Waiting: %d\n", c0);
                 if 
-                :: (c0 == 0) -> break
+                :: (c0 % 2 == 0) -> break
                 fi;
             od;
 
             d1 = x1;
             d2 = x2;
 
+            readData(d1, d2);
+
             if 
             :: (c0 == c) -> break
             fi;
         od;
 
-        use(d1, d2);
+        /* use(d1, d2); */
 
     od;
 }
@@ -54,22 +61,17 @@ active proctype writer () {
     byte d2 = 0;
     do
     :: true -> 
-
-        do
-        :: c == 0 -> break
-        od;
-
-        c = c + 1;
-
         get();
         d1 = item;
         get();
         d2 = item;
 
+        /* Added modulus to prevent overflow */
+        c = (c + 1) % 256;
         x1 = d1;
         x2 = d2;
-
-        c = c - 1;
+        writeData(d1, d2);
+        c = (c + 1) % 256;
 
     od;
 }
