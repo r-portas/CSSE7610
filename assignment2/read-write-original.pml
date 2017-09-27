@@ -68,10 +68,16 @@ active proctype writer () {
 
         /* Added modulus to prevent overflow */
         c = (c + 1) % 256;
+
+        /* This must be odd here */
+        assert(c % 2 == 1);
         x1 = d1;
         x2 = d2;
         writeData(d1, d2);
         c = (c + 1) % 256;
+        
+        /* This must be even here */
+        assert(c % 2 == 0);
 
     od;
 }
