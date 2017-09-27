@@ -14,7 +14,7 @@ inline readData(d1, d2) {
 }
 
 inline writeData(d1, d2) {
-    /* printf("Writer #%d (%d, %d)\n", _pid, d1, d2); */
+    printf("Writer #%d (%d, %d)\n", _pid, d1, d2);
 }
 
 inline get() {
@@ -28,26 +28,26 @@ active proctype reader () {
     do
     :: true -> 
 
+        /* Create a variable to check that the loop has ran at
+        least once */
+        bool hasRan1 = 0;
         do
-        :: true -> 
+        :: (c0 == c && hasRan1) -> break
+        :: else -> 
             
+            bool hasRan2 = 0;
             do
-            :: true -> 
+            :: (c0 % 2 == 0 && hasRan2) -> break
+            :: else -> 
                 c0 = c;
-                printf("Waiting: %d\n", c0);
-                if 
-                :: (c0 % 2 == 0) -> break
-                fi;
+                hasRan2 = 1;
             od;
 
             d1 = x1;
             d2 = x2;
 
             readData(d1, d2);
-
-            if 
-            :: (c0 == c) -> break
-            fi;
+            hasRan1 = 1;
         od;
 
         /* use(d1, d2); */
