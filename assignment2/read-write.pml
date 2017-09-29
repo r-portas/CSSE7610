@@ -6,8 +6,9 @@
 
 byte WRITERS = 2;
 byte READERS = 2;
-byte INCREMENTERS = 2;
+byte INCREMENTERS = 0;
 
+bool hasUpdated = 0;
 byte c = 0
 byte x1 = 0;
 byte x2 = 0;
@@ -31,11 +32,10 @@ inline get() {
     The +1 on the end ensures that item will
     never equal 0 
     */
-    item = ((item+1) % 254) + 1;
+    item = (item % 254) + 1;
 }
 
 active [READERS] proctype reader () {
-    byte c0 = 0;
     byte d1 = 0;
     byte d2 = 0;
     do
@@ -45,24 +45,17 @@ active [READERS] proctype reader () {
         least once */
         bool hasRan1 = 0;
         do
-        :: (c0 == c && hasRan1) -> break
+        :: (hasUpdated == 0 && hasRan1) -> break
         :: else -> 
             
-            bool hasRan2 = 0;
-            do
-            :: (c0 == 0 && hasRan2) -> break
-            :: else -> 
-                c0 = c;
-                hasRan2 = 1;
-            od;
-
+            hasUpdated = 0;
             d1 = x1;
             d2 = x2;
 
-            readData(d1, d2);
             hasRan1 = 1;
         od;
 
+        readData(d1, d2);
         /* use(d1, d2); */
 
     od;
@@ -74,15 +67,23 @@ active [WRITERS] proctype writer () {
     byte d2 = 0;
     do
     :: true -> 
-        /* await c = 0 */
-        c == 0;
+        
+        /* Mimic a compare and set */
+        atomic {
+            /* await c = 0 */
+            c == 0;
+            c = c + 1;
+        }
 
-        c = c + 1;
+        /* c should always be 1 here */
+        assert(c == 1);
+
         get();
         d1 = item;
         get();
         d2 = item;
 
+        hasUpdated = 1;
         x1 = d1;
         x2 = d2;
         writeData(d1, d2);
@@ -95,37 +96,44 @@ active [WRITERS] proctype writer () {
 active [INCREMENTERS] proctype incrementer () {
     byte d1 = 0;
     byte d2 = 0;
-    byte c0 = 0;
     do
     :: true -> 
 
-        /* Create a variable to check that the loop has ran at
-        least once */
-        bool hasRan1 = 0;
         do
-        :: (c0 == c && hasRan1) -> 
-            /* The value for c hasn't changed, so update */
-            x1 = d1;
-            x2 = d2;
-            incrementData(d1, d2);
-            break;
+        :: true -> 
+            atomic {
+                hasUpdated = 0;
+                d1 = x1 + 1;
+                d2 = x2 + 1;
+                printf("%d Saving d1 and d2\n", _pid);
+            }
 
-        :: else -> 
-            bool hasRan2 = 0;
-            do
-            :: (c0 == 0 && hasRan2) -> break
-            :: else -> 
-                c0 = c;
-                hasRan2 = 1;
-            od;
-
-            d1 = x1 + 1;
-            d2 = x2 + 1;
-
-            hasRan1 = 1;
+            atomic {
+                if
+                :: (hasUpdated == 0 && c == 0) ->
+                    c = c + 1;
+                    printf("%d Incrementing c\n", _pid);
+                    break;
+                :: else
+                fi;
+            }
         od;
 
-        /* use(d1, d2); */
+        /* The value for c hasn't changed, so update */
+        assert(c == 1);
+        incrementData(d1, d2);
+
+        // Q2 (b)
+        assert(d1 == x1 + 1);
+        assert(d2 == x2 + 1);
+
+        atomic {
+            hasUpdated = 1;
+            x1 = d1;
+            x2 = d2;
+        }
+
+        c = c - 1;
 
     od;
 }
