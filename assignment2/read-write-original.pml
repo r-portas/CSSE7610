@@ -43,6 +43,8 @@ active proctype reader () {
                 hasRan2 = 1;
             od;
 
+            assert(c0 % 2 == 0);
+
             d1 = x1;
             d2 = x2;
 
