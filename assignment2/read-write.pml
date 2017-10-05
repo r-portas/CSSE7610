@@ -11,6 +11,7 @@ byte INCREMENTERS = 2;
 byte c = 0;
 byte x1 = 0;
 byte x2 = 0;
+byte writersWaiting = 0;
 byte item = 0;
 
 /* Counts the number of critical sections entered */
@@ -80,7 +81,11 @@ active [READERS] proctype reader () {
             hasRan1 = 1;
         od;
 
-        /* use(d1, d2); */
+        /* Q2 a */
+        /* The writer sets the same value to each variable during each write */
+        /* We can check if the variables were written within a single write */
+        /* by checking that the numbers are equal */
+        assert(d1 == d2);
 
     od;
 }
@@ -89,14 +94,22 @@ active [WRITERS] proctype writer () {
     byte c0 = 0;
     byte d1 = 0;
     byte d2 = 0;
+    
+    /* We only use tmp to simulate the get() function */
+    byte tmp = 0;
     do
     :: true -> 
-        get();
-        d1 = item;
-        get();
-        d2 = item;
 
+        /* get() then store the result in tmp */
+        get();
+        tmp = item;
+
+        d1 = tmp;
+        d2 = tmp;
+
+        writersWaiting++;
         wait(s);
+
         counter = counter + 1;
 
         /* Added modulus to prevent overflow */
@@ -111,6 +124,7 @@ active [WRITERS] proctype writer () {
 
         counter = counter - 1;
         signal(s);
+        writersWaiting--;
 
     od;
 }
@@ -123,71 +137,73 @@ active [INCREMENTERS] proctype incrementer () {
     bool locked = 0;
     do
     :: true -> 
-        bool hasRan1 = 0;
-        do
-        :: (c0 == c && hasRan1) -> break
-        :: else -> 
             
-            bool hasRan2 = 0;
-            do
-            :: (c0 % 2 == 0 && hasRan2) -> break
-            :: else -> 
-                c0 = c;
-                hasRan2 = 1;
-            od;
-
-            /* This must be even here */
-            assert(c0 % 2 == 0);
-
-            d1 = x1;
-            d2 = x2;
-
-            hasRan1 = 1;
+        bool hasRan2 = 0;
+        do
+        :: (c0 % 2 == 0 && hasRan2) -> break
+        :: else -> 
+            c0 = c;
+            hasRan2 = 1;
         od;
 
-        /* Perform a tryAcquire */
-        atomic {
+        /* This must be even here */
+        assert(c0 % 2 == 0);
+
+        d1 = x1;
+        d2 = x2;
+
+        if 
+        :: (writersWaiting == 0) -> 
+            /* Perform a tryAcquire */
+            atomic {
+                if
+                :: s > 0 ->
+                    s--;
+                    locked = 1;
+                :: else ->
+                    locked = 0;
+                fi;
+            }
+
             if
-            :: s > 0 ->
-                s--;
-                locked = 1;
-            :: else ->
-                locked = 0;
-            fi;
-        }
+            :: (locked == 1) ->
 
-        if
-        :: locked == 1 ->
+                if
+                /* Only update if the counter has not updated */
+                /* Go back to the start otherwise (i.e. low priority) */
+                :: c0 == c ->
 
-            if
-            /* Only update if the values are the same */
-            /* Go back to the start otherwise (i.e. low priority) */
-            :: x1 == d1 && x2 == d2 ->
+                    counter = counter + 1;
 
-                counter = counter + 1;
+                    /* Added modulus to prevent overflow */
+                    c = (c + 1) % 256;
 
-                /* Added modulus to prevent overflow */
-                c = (c + 1) % 256;
+                    /* This must be odd here */
+                    assert(c % 2 == 1);
 
-                /* This must be odd here */
-                assert(c % 2 == 1);
+                    /* Check we are incrementing the current value */
+                    incrementData(d1, d2);
 
-                /* Check we are incrementing the current value */
-                incrementData(d1, d2);
-                assert(x1 == d1);
-                assert(x2 == d2);
+                    /* Q2 b */
+                    /* We want to ensure that the values incremented */
+                    /* are the current values of x1 and x2 */
+                    assert(x1 == d1);
+                    assert(x2 == d2);
 
-                x1 = (d1 + 1) % 256;
-                x2 = (d2 + 1) % 256;
-                c = (c + 1) % 256;
+                    x1 = (d1 + 1) % 256;
+                    x2 = (d2 + 1) % 256;
+                    c = (c + 1) % 256;
 
-                counter = counter - 1;
+                    counter = counter - 1;
+                :: else
+                fi;
+
+                /* Always signal */
+                signal(s);
             :: else
             fi;
-
-            /* Always signal */
-            signal(s);
         :: else
         fi;
+
     od;
 }
