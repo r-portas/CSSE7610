@@ -37,45 +37,17 @@ inline get() {
     item = (item+1) % 255;
 }
 
-/* Monitor implementation */
+/* Semaphore implementation */
 
-bool lock = false;
+/* The binary semaphore */
+byte s = 1;
 
-inline writeLock() {
-    atomic {
-        writersWaiting++;
-        !lock;
-        lock = true;
-    }
+inline wait(s) {
+    atomic { s > 0; s-- };
 }
 
-inline writeUnlock() {
-    assert(lock == true);
-    atomic {
-        lock = false;
-        writersWaiting--;
-    }
-}
-
-/* If inline statements supported returns, this would be */
-/* the definition for the incrementerLock */
-/*
-inline incrementerLock() {
-    atomic {
-        if
-        :: writersWaiting == 0 && lock == false ->
-            lock = true;
-            return true;
-        :: else ->
-            return false;
-        fi;
-    }
-}
-*/
-
-inline incrementerUnlock() {
-    assert(lock == true);
-    lock = false;
+inline signal(s) {
+    s++;
 }
 
 active [READERS] proctype reader () {
@@ -135,7 +107,8 @@ active [WRITERS] proctype writer () {
         d1 = tmp;
         d2 = tmp;
 
-        writeLock();
+        writersWaiting++;
+        wait(s);
 
         counter = counter + 1;
 
@@ -150,7 +123,8 @@ active [WRITERS] proctype writer () {
         c = (c + 1) % 256;
 
         counter = counter - 1;
-        writeUnlock();
+        signal(s);
+        writersWaiting--;
 
     od;
 }
@@ -159,8 +133,8 @@ active [INCREMENTERS] proctype incrementer () {
     byte c0 = 0;
     byte d1 = 0;
     byte d2 = 0;
-    bool hasLock = false;
 
+    bool locked = 0;
     do
     :: true -> 
             
@@ -178,57 +152,56 @@ active [INCREMENTERS] proctype incrementer () {
         d1 = x1;
         d2 = x2;
 
-        /* Do the incrementer lock */
-        /* This is defined within the process as we need a return code from it */
-        atomic {
-            if
-            :: writersWaiting == 0 && lock == false ->
-                /* Get the lock and return true */
-                lock = true;
-                hasLock = true;
-            :: else ->
-                /* It doesn't have the lock, so give up and continue without it */
-                hasLock = false;
-            fi;
-        }
-
-        if
-        /* Only increment if we have the lock */
-        :: hasLock ->
+        if 
+        :: (writersWaiting == 0) -> 
+            /* Perform a tryAcquire */
+            atomic {
+                if
+                :: s > 0 ->
+                    s--;
+                    locked = 1;
+                :: else ->
+                    locked = 0;
+                fi;
+            }
 
             if
-            /* Only update if the counter has not updated */
-            /* Go back to the start otherwise (i.e. low priority) */
-            :: c0 == c ->
+            :: (locked == 1) ->
 
-                counter = counter + 1;
+                if
+                /* Only update if the counter has not updated */
+                /* Go back to the start otherwise (i.e. low priority) */
+                :: c0 == c ->
 
-                /* Added modulus to prevent overflow */
-                c = (c + 1) % 256;
+                    counter = counter + 1;
 
-                /* This must be odd here */
-                assert(c % 2 == 1);
+                    /* Added modulus to prevent overflow */
+                    c = (c + 1) % 256;
 
-                /* Check we are incrementing the current value */
-                incrementData(d1, d2);
+                    /* This must be odd here */
+                    assert(c % 2 == 1);
 
-                /* Q2 b */
-                /* We want to ensure that the values incremented */
-                /* are the current values of x1 and x2 */
-                assert(x1 == d1);
-                assert(x2 == d2);
+                    /* Check we are incrementing the current value */
+                    incrementData(d1, d2);
 
-                x1 = (d1 + 1) % 256;
-                x2 = (d2 + 1) % 256;
-                c = (c + 1) % 256;
+                    /* Q2 b */
+                    /* We want to ensure that the values incremented */
+                    /* are the current values of x1 and x2 */
+                    assert(x1 == d1);
+                    assert(x2 == d2);
 
-                counter = counter - 1;
+                    x1 = (d1 + 1) % 256;
+                    x2 = (d2 + 1) % 256;
+                    c = (c + 1) % 256;
 
+                    counter = counter - 1;
+                :: else
+                fi;
+
+                /* Always signal */
+                signal(s);
             :: else
             fi;
-
-            incrementerUnlock();
-
         :: else
         fi;
 
