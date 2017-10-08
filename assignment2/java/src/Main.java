@@ -1,3 +1,7 @@
+/**
+ *  Assignment 2
+ *  @author Roy Portas - 43560846
+ */
 import java.lang.Thread;
 import java.util.Random;
 
@@ -34,7 +38,6 @@ class Monitor {
             }
 
             isAvailable = false;
-            notifyAll();
         }
         notifyAll();
     }
@@ -77,14 +80,11 @@ class Reader extends MyThread {
     int d1;
     int d2;
 
-    int lastRead;
-
     public Reader(int id, Shared s) {
         super(id, s);
         c0 = 0;
         d1 = 0;
         d2 = 0;
-        lastRead = -1;
     }
 
     public void run() {
@@ -93,9 +93,11 @@ class Reader extends MyThread {
                 // Wait a random amount of time
                 Thread.sleep(shared.rand.nextInt(10));
 
+
                 do {
                     do {
                         c0 = shared.c;
+
                         Thread.yield();
                     } while (c0 % 2 != 0);
                     
@@ -104,13 +106,12 @@ class Reader extends MyThread {
                     Thread.yield();
                 } while (c0 != shared.c);
 
-                if (lastRead == c0) {
-                    // End the reader
-                    break;
-                }
-                lastRead = c0;
-
                 A2Event.readData(id, shared.x1, shared.x2);
+
+                if (c0 == 20) {
+                    return;
+                }
+
                 Thread.yield();
 
             } catch (InterruptedException e) {
@@ -186,9 +187,9 @@ class Writer extends MyThread {
             shared.mon.startWrite();
             shared.c++;
 
-            // Figure out how to get the values
-            d1 = shared.x1 + 1;
-            d2 = shared.x1 + 1;
+            // simulate the get
+            d1 = shared.x1 + 2;
+            d2 = shared.x1 + 2;
 
             shared.x1 = d1;
             shared.x2 = d2;
