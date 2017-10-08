@@ -93,14 +93,15 @@ class Reader extends MyThread {
                 // Wait a random amount of time
                 Thread.sleep(shared.rand.nextInt(10));
 
-
                 do {
                     do {
                         c0 = shared.c;
+                        Thread.yield();
                     } while (c0 % 2 != 0);
                     
                     d1 = shared.x1;
                     d2 = shared.x2;
+                    Thread.yield();
                 } while (c0 != shared.c);
 
                 if (lastRead == c0) {
@@ -110,6 +111,7 @@ class Reader extends MyThread {
                 lastRead = c0;
 
                 A2Event.readData(id, shared.x1, shared.x2);
+                Thread.yield();
 
             } catch (InterruptedException e) {
                 System.err.print(e);
@@ -138,6 +140,7 @@ class Incrementer extends MyThread {
 
                 do {
                     c0 = shared.c;
+                    Thread.yield();
                 } while (c0 % 2 != 0);
                 
                 d1 = shared.x1;
@@ -156,6 +159,7 @@ class Incrementer extends MyThread {
                     break;
                 }
                 shared.mon.endIncrement();
+                Thread.yield();
 
             } catch (InterruptedException e) {
                 System.err.print(e);
@@ -192,6 +196,7 @@ class Writer extends MyThread {
 
             shared.c++;
             shared.mon.endWrite();
+            Thread.yield();
         } catch (InterruptedException e) {
             System.err.print(e);
         }
