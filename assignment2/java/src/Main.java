@@ -5,38 +5,42 @@ class Monitor {
     /* The number of writers waiting for the lock */
     private int writersWaiting;
     /* The lock on the variables x1 and x2 */
-    private boolean locked;
+    private boolean isAvailable;
 
     public synchronized void startWrite() {
         writersWaiting++;
 
-        while (locked) {
+        while (isAvailable == false) {
             try {
                 wait();
             } catch (InterruptedException e) {}
         }
-        locked = true;
+        isAvailable = false;
         writersWaiting--;
         notifyAll();
     }
 
     public synchronized void endWrite() {
-        locked = false;
+        isAvailable = true;
         notifyAll();
     }
 
-    public synchronized boolean startIncrement() {
-        if (writersWaiting == 0 && locked == false) {
-            locked = true;
+    public synchronized void startIncrement() {
+        if (writersWaiting == 0) {
+            while (isAvailable == false) {
+                try {
+                    wait();
+                } catch (InterruptedException e) {}
+            }
+
+            isAvailable = false;
             notifyAll();
-            return true;
         }
         notifyAll();
-        return false;
     }
 
     public synchronized void endIncrement() {
-        locked = false;
+        isAvailable = true;
         notifyAll();
     }
 }
@@ -139,21 +143,19 @@ class Incrementer extends MyThread {
                 d1 = shared.x1;
                 d2 = shared.x2;
 
-                if (shared.mon.startIncrement()) {
-                    if (c0 == shared.c) {
-                        shared.c++;
+                shared.mon.startIncrement();
+                if (c0 == shared.c) {
+                    shared.c++;
 
-                        shared.x1 = d1 + 1;
-                        shared.x2 = d2 + 1;
-                        A2Event.incrementData(id, shared.x1, shared.x2);
+                    shared.x1 = d1 + 1;
+                    shared.x2 = d2 + 1;
+                    A2Event.incrementData(id, shared.x1, shared.x2);
 
-                        shared.c++;
-                        shared.mon.endIncrement();
-                        break;
-                    } else {
-                        shared.mon.endIncrement();
-                    }
+                    shared.c++;
+                    shared.mon.endIncrement();
+                    break;
                 }
+                shared.mon.endIncrement();
 
             } catch (InterruptedException e) {
                 System.err.print(e);

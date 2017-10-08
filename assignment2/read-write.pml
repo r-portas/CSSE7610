@@ -39,43 +39,41 @@ inline get() {
 
 /* Monitor implementation */
 
-bool lock = false;
+/* The condition */
+bool isAvailable = true;
 
 inline writeLock() {
     atomic {
         writersWaiting++;
-        !lock;
-        lock = true;
+        isAvailable;
+        isAvailable = false;
+        /* printf(":: writeLock\n"); */
     }
 }
 
 inline writeUnlock() {
-    assert(lock == true);
+    assert(isAvailable == false);
     atomic {
-        lock = false;
+        isAvailable = true;
         writersWaiting--;
+        /* printf(":: writeUnlock\n"); */
     }
 }
 
-/* If inline statements supported returns, this would be */
-/* the definition for the incrementerLock */
-/*
 inline incrementerLock() {
     atomic {
-        if
-        :: writersWaiting == 0 && lock == false ->
-            lock = true;
-            return true;
-        :: else ->
-            return false;
-        fi;
+        writersWaiting == 0 && isAvailable;
+        isAvailable = false;
+        /* printf(":: incrementerLock\n"); */
     }
 }
-*/
 
 inline incrementerUnlock() {
-    assert(lock == true);
-    lock = false;
+    atomic {
+        assert(isAvailable == false);
+        isAvailable = true;
+        /* printf(":: incrementerUnlock\n"); */
+    }
 }
 
 active [READERS] proctype reader () {
@@ -178,59 +176,40 @@ active [INCREMENTERS] proctype incrementer () {
         d1 = x1;
         d2 = x2;
 
-        /* Do the incrementer lock */
-        /* This is defined within the process as we need a return code from it */
-        atomic {
-            if
-            :: writersWaiting == 0 && lock == false ->
-                /* Get the lock and return true */
-                lock = true;
-                hasLock = true;
-            :: else ->
-                /* It doesn't have the lock, so give up and continue without it */
-                hasLock = false;
-            fi;
-        }
-
+        incrementerLock();
+        
         if
-        /* Only increment if we have the lock */
-        :: hasLock ->
+        /* Only update if the counter has not updated */
+        /* Go back to the start otherwise (i.e. low priority) */
+        :: c0 == c ->
 
-            if
-            /* Only update if the counter has not updated */
-            /* Go back to the start otherwise (i.e. low priority) */
-            :: c0 == c ->
+            counter = counter + 1;
 
-                counter = counter + 1;
+            /* Added modulus to prevent overflow */
+            c = (c + 1) % 256;
 
-                /* Added modulus to prevent overflow */
-                c = (c + 1) % 256;
+            /* This must be odd here */
+            assert(c % 2 == 1);
 
-                /* This must be odd here */
-                assert(c % 2 == 1);
+            /* Check we are incrementing the current value */
+            incrementData(d1, d2);
 
-                /* Check we are incrementing the current value */
-                incrementData(d1, d2);
+            /* Q2 b */
+            /* We want to ensure that the values incremented */
+            /* are the current values of x1 and x2 */
+            assert(x1 == d1);
+            assert(x2 == d2);
 
-                /* Q2 b */
-                /* We want to ensure that the values incremented */
-                /* are the current values of x1 and x2 */
-                assert(x1 == d1);
-                assert(x2 == d2);
+            x1 = (d1 + 1) % 256;
+            x2 = (d2 + 1) % 256;
+            c = (c + 1) % 256;
 
-                x1 = (d1 + 1) % 256;
-                x2 = (d2 + 1) % 256;
-                c = (c + 1) % 256;
-
-                counter = counter - 1;
-
-            :: else
-            fi;
-
-            incrementerUnlock();
+            counter = counter - 1;
 
         :: else
         fi;
+
+        incrementerUnlock();
 
     od;
 }
