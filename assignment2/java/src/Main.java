@@ -12,25 +12,30 @@ class Monitor {
     private boolean isAvailable;
 
     public synchronized void startWrite() {
+        // Thers a writer waiting
         writersWaiting++;
 
         while (isAvailable == false) {
             try {
+                // Wait for the lock
                 wait();
             } catch (InterruptedException e) {}
         }
         isAvailable = false;
+        // We have the lock, so no longer waiting for it
         writersWaiting--;
         notifyAll();
     }
 
     public synchronized void endWrite() {
+        // Set the available flag to true, then notify threads
         isAvailable = true;
         notifyAll();
     }
 
     public synchronized void startIncrement() {
         if (writersWaiting == 0) {
+            // If there is no writers waiting, get the isAvailable flag
             while (isAvailable == false) {
                 try {
                     wait();
@@ -43,6 +48,7 @@ class Monitor {
     }
 
     public synchronized void endIncrement() {
+        // Set the available flag to true, then notify threads
         isAvailable = true;
         notifyAll();
     }
@@ -148,6 +154,7 @@ class Incrementer extends MyThread {
                 d2 = shared.x2;
 
                 shared.mon.startIncrement();
+                // Test to see if a writer has updated the variables
                 if (c0 == shared.c) {
                     shared.c++;
 

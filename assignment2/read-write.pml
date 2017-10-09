@@ -82,7 +82,7 @@ active [READERS] proctype reader () {
     byte d2 = 0;
     do
     :: true -> 
-       /* Create a variable to check that the loop has ran at least once. */
+        /* Create a variable to check that the loop has ran at least once. */
         /* There is probably a better method to implement a repeat-until loop */
         bool hasRan1 = 0;
         do
