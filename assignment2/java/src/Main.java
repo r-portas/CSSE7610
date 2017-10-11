@@ -15,18 +15,21 @@ class Monitor {
     /* The number of incrementers */
     private int incrementers;
 
+    /* Provides mutual exclusion for the monitor */
     private ReentrantLock lock = new ReentrantLock();
+
+    /* The condition that determines if a writer can write */
     private Condition canWrite = lock.newCondition();
+    /* The condition that determines if a incrementer can increment */
     private Condition canIncrement = lock.newCondition();
 
     public void startWrite() {
         lock.lock();
         try {
             if (writers != 0 || incrementers != 0) {
-                // System.out.println(":: Writer waiting: " + writers + " " + incrementers);
+                /* Wait until there are no writers or incrementers doing stuff */
                 canWrite.await();
             }
-            // System.out.println(":: Writer continued");
             writers++;
         } catch (Exception e) {
             System.err.println(e);
@@ -41,10 +44,9 @@ class Monitor {
             if (lock.hasWaiters(canWrite)) {
                 // Always give writers precendence
                 canWrite.signal();
-                // System.out.println(":: Signalling writer");
             } else if (lock.hasWaiters(canIncrement)) {
+                // If theres something waiting to increment
                 canIncrement.signal();
-                // System.out.println(":: Signalling incrementer");
             }
             writers--;
         } catch (Exception e) {
@@ -58,10 +60,9 @@ class Monitor {
         lock.lock();
         try {
             if (writers != 0 || incrementers != 0) {
-                // System.out.println(":: Incrementer waiting");
+                /* Wait until there are no writers or incrementers doing stuff */
                 canIncrement.await();
             }
-            // System.out.println(":: Incrementer continued");
             incrementers++;
         } catch (Exception e) {
             System.err.println(e);
@@ -76,10 +77,8 @@ class Monitor {
             if (lock.hasWaiters(canWrite)) {
                 // Always give writers precendence
                 canWrite.signal();
-                // System.out.println(":: Signalling writer");
             } else if (lock.hasWaiters(canIncrement)) {
                 canIncrement.signal();
-                // System.out.println(":: Signalling incrementer");
             }
             incrementers--;
         } catch (Exception e) {
@@ -91,6 +90,9 @@ class Monitor {
     }
 }
 
+/**
+ * The shared variables between all the threads
+ */
 class Shared {
     public int c = 0;
     public int x1 = 0;
@@ -237,7 +239,7 @@ class Writer extends MyThread {
 
             shared.x1 = d1;
             shared.x2 = d2;
-            A2Event.writeData(id, shared.x1, shared.x2);
+            A2Event.writeData(id, d1, d2);
 
             shared.c++;
             shared.mon.endWrite();
