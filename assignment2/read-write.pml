@@ -11,7 +11,6 @@ byte INCREMENTERS = 2;
 byte c = 0;
 byte x1 = 0;
 byte x2 = 0;
-byte writersWaiting = 0;
 byte item = 0;
 
 /* Counts the number of critical sections entered */
@@ -38,42 +37,101 @@ inline get() {
 }
 
 /* Monitor implementation */
+byte writers = 0;
+byte incrementers = 0;
+bool lock = false;
 
-/* The condition */
-bool isAvailable = true;
+typedef Condition {
+    bool gate;
+    byte waiting;
+}
+
+inline enterMon() {
+    atomic {
+        !lock;
+        lock = true;
+    }
+}
+
+inline exitMon() {
+    lock = false;
+}
+
+Condition canWrite;
+Condition canIncrement;
+
+inline wait(C) {
+    atomic {
+        C.waiting++;
+        lock = false;
+        C.gate;
+        lock = true;
+        C.gate = false;
+        C.waiting--;
+    }
+}
+
+inline signal(C) {
+    atomic {
+        if 
+        :: (C.waiting > 0) ->
+            C.gate = true;
+            !lock;
+            lock = true;
+        :: else
+        fi;
+    }
+}
 
 inline writeLock() {
-    atomic {
-        writersWaiting++;
-        isAvailable;
-        isAvailable = false;
-        /* printf(":: writeLock\n"); */
-    }
+    enterMon();
+    if 
+    :: (writers != 0 || incrementers != 0) ->
+        wait(canWrite);
+    :: else
+    fi;
+
+    writers++;
+    /* printf(":: writeLock\n"); */
+    exitMon();
 }
 
 inline writeUnlock() {
-    assert(isAvailable == false);
-    atomic {
-        isAvailable = true;
-        writersWaiting--;
-        /* printf(":: writeUnlock\n"); */
-    }
+    enterMon();
+    if
+    :: canWrite.waiting == 0 ->
+        signal(canIncrement);
+    :: else ->
+        signal(canWrite);
+    fi;
+    writers--;
+    exitMon();
 }
 
 inline incrementerLock() {
-    atomic {
-        writersWaiting == 0 && isAvailable;
-        isAvailable = false;
-        /* printf(":: incrementerLock\n"); */
-    }
+    enterMon();
+    if
+    :: (writers != 0 || incrementers != 0) ->
+        wait(canIncrement);
+    :: else
+    fi;
+    incrementers++;
+    /* printf(":: incrementerLock\n"); */
+    exitMon();
 }
 
 inline incrementerUnlock() {
-    atomic {
-        assert(isAvailable == false);
-        isAvailable = true;
-        /* printf(":: incrementerUnlock\n"); */
-    }
+    enterMon();
+    if
+    :: canWrite.waiting != 0 ->
+        /* Give precedence to the writers */
+        signal(canWrite);
+    :: else ->
+        signal(canIncrement);
+    fi;
+    incrementers--;
+    /* printf(":: incrementerUnlock\n"); */
+    exitMon();
 }
 
 active [READERS] proctype reader () {
@@ -88,23 +146,23 @@ active [READERS] proctype reader () {
         do
         :: (c0 == c && hasRan1) -> break
         :: else -> 
-            
+
             bool hasRan2 = 0;
             do
             :: (c0 % 2 == 0 && hasRan2) -> break
             :: else -> 
-                c0 = c;
-                hasRan2 = 1;
-            od;
+            c0 = c;
+        hasRan2 = 1;
+        od;
 
-            /* This must be even here */
-            assert(c0 % 2 == 0);
+        /* This must be even here */
+        assert(c0 % 2 == 0);
 
-            d1 = x1;
-            d2 = x2;
+        d1 = x1;
+        d2 = x2;
 
-            readData(d1, d2);
-            hasRan1 = 1;
+        readData(d1, d2);
+        hasRan1 = 1;
         od;
 
         /* Q2 a */
@@ -120,7 +178,7 @@ active [WRITERS] proctype writer () {
     byte c0 = 0;
     byte d1 = 0;
     byte d2 = 0;
-    
+
     /* We only use tmp to simulate the get() function */
     byte tmp = 0;
     do
@@ -161,7 +219,7 @@ active [INCREMENTERS] proctype incrementer () {
 
     do
     :: true -> 
-            
+
         bool hasRan2 = 0;
         do
         :: (c0 % 2 == 0 && hasRan2) -> break
@@ -177,7 +235,7 @@ active [INCREMENTERS] proctype incrementer () {
         d2 = x2;
 
         incrementerLock();
-        
+
         if
         /* Only update if the counter has not updated */
         /* Go back to the start otherwise (i.e. low priority) */
@@ -209,7 +267,7 @@ active [INCREMENTERS] proctype incrementer () {
         :: else
         fi;
 
-        incrementerUnlock();
+    incrementerUnlock();
 
     od;
 }

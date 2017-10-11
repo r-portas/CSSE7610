@@ -4,53 +4,90 @@
  */
 import java.lang.Thread;
 import java.util.Random;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 class Monitor {
-    /* The number of writers waiting for the lock */
-    private int writersWaiting;
-    /* The lock on the variables x1 and x2 */
-    private boolean isAvailable;
+    /* The number of writers */
+    private int writers;
 
-    public synchronized void startWrite() {
-        // Thers a writer waiting
-        writersWaiting++;
+    /* The number of incrementers */
+    private int incrementers;
 
-        while (isAvailable == false) {
-            try {
-                // Wait for the lock
-                wait();
-            } catch (InterruptedException e) {}
-        }
-        isAvailable = false;
-        // We have the lock, so no longer waiting for it
-        writersWaiting--;
-        notifyAll();
-    }
+    private ReentrantLock lock = new ReentrantLock();
+    private Condition canWrite = lock.newCondition();
+    private Condition canIncrement = lock.newCondition();
 
-    public synchronized void endWrite() {
-        // Set the available flag to true, then notify threads
-        isAvailable = true;
-        notifyAll();
-    }
-
-    public synchronized void startIncrement() {
-        if (writersWaiting == 0) {
-            // If there is no writers waiting, get the isAvailable flag
-            while (isAvailable == false) {
-                try {
-                    wait();
-                } catch (InterruptedException e) {}
+    public void startWrite() {
+        lock.lock();
+        try {
+            if (writers != 0 || incrementers != 0) {
+                // System.out.println(":: Writer waiting: " + writers + " " + incrementers);
+                canWrite.await();
             }
-
-            isAvailable = false;
+            // System.out.println(":: Writer continued");
+            writers++;
+        } catch (Exception e) {
+            System.err.println(e);
+        } finally {
+            lock.unlock();
         }
-        notifyAll();
     }
 
-    public synchronized void endIncrement() {
-        // Set the available flag to true, then notify threads
-        isAvailable = true;
-        notifyAll();
+    public void endWrite() {
+        lock.lock();
+        try {
+            if (lock.hasWaiters(canWrite)) {
+                // Always give writers precendence
+                canWrite.signal();
+                // System.out.println(":: Signalling writer");
+            } else if (lock.hasWaiters(canIncrement)) {
+                canIncrement.signal();
+                // System.out.println(":: Signalling incrementer");
+            }
+            writers--;
+        } catch (Exception e) {
+            System.err.println(e);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void startIncrement() {
+        lock.lock();
+        try {
+            if (writers != 0 || incrementers != 0) {
+                // System.out.println(":: Incrementer waiting");
+                canIncrement.await();
+            }
+            // System.out.println(":: Incrementer continued");
+            incrementers++;
+        } catch (Exception e) {
+            System.err.println(e);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void endIncrement() {
+        lock.lock();
+        try {
+            if (lock.hasWaiters(canWrite)) {
+                // Always give writers precendence
+                canWrite.signal();
+                // System.out.println(":: Signalling writer");
+            } else if (lock.hasWaiters(canIncrement)) {
+                canIncrement.signal();
+                // System.out.println(":: Signalling incrementer");
+            }
+            incrementers--;
+        } catch (Exception e) {
+            System.err.println(e);
+            System.err.println(e.getMessage());
+        } finally {
+            lock.unlock();
+        }
     }
 }
 
