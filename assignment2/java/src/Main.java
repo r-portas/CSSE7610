@@ -23,6 +23,9 @@ class Monitor {
     /* The condition that determines if a incrementer can increment */
     private Condition canIncrement = lock.newCondition();
 
+    /**
+     * Called when the writer has started
+     */
     public void startWrite() {
         lock.lock();
         try {
@@ -38,6 +41,9 @@ class Monitor {
         }
     }
 
+    /**
+     * Called when the writer finished
+     */
     public void endWrite() {
         lock.lock();
         try {
@@ -56,6 +62,9 @@ class Monitor {
         }
     }
 
+    /**
+     * Called when an incrementer starts
+     */
     public void startIncrement() {
         lock.lock();
         try {
@@ -71,6 +80,9 @@ class Monitor {
         }
     }
 
+    /**
+     * Called when a incrementer has finished
+     */
     public void endIncrement() {
         lock.lock();
         try {
@@ -110,6 +122,10 @@ class Shared {
     }
 }
 
+/**
+ * Extend the thread class to add some common
+ * functionality, such as shared variables and IDs
+ */
 class MyThread extends Thread {
     int id;
     Shared shared;
